@@ -474,10 +474,10 @@ class CodeAggregatorApp:
             output_dir = self.output_dir_path.get()
             if not output_dir or not os.path.isdir(output_dir):
                 self.log_queue.put(
-                    f"警告: 输出目录 '{output_dir}' 无效。将使用程序所在目录。"
+                    f"警告: 无输出目录 '{output_dir}' 。将新建指定目录。"
                 )
-                output_dir = self.script_dir
-                self.root.after(0, lambda: self.output_dir_path.set(output_dir))
+                os.makedirs(output_dir, exist_ok=True)
+                self.log_queue.put(f"已创建输出目录: {output_dir}")
 
             # 【修改】调用新函数处理文件名冲突
             base_filename = self.output_filename.get()
@@ -580,14 +580,16 @@ class CodeAggregatorApp:
     def load_config(self):
         config_path = os.path.join(self.script_dir, self.CONFIG_FILE)
         if not os.path.exists(config_path):
-            self.output_dir_path.set(self.script_dir)
+            self.output_dir_path.set(self.script_dir + "\\output")
             return
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
 
             self.dir_path.set(config.get("directory", ""))
-            self.output_dir_path.set(config.get("output_directory", self.script_dir))
+            self.output_dir_path.set(
+                config.get("output_directory", self.script_dir + "\\output")
+            )
 
             if "extensions_checked" in config:
                 for ext, value in config["extensions_checked"].items():
@@ -607,12 +609,12 @@ class CodeAggregatorApp:
                 for item in config["ignore_custom"]:
                     self.ignore_listbox.insert(tk.END, item)
 
-            self.output_filename.set(config.get("output_filename", "output\code_summary"))
+            self.output_filename.set(config.get("output_filename", "code_summary"))
             self.output_format.set(config.get("output_format", ".md"))
 
         except (IOError, json.JSONDecodeError) as e:
             print(f"无法加载配置: {e}")
-            self.output_dir_path.set(self.script_dir)
+            self.output_dir_path.set(self.script_dir + "\\output")
 
 
 if __name__ == "__main__":
