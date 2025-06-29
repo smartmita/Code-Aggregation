@@ -607,7 +607,7 @@ class CodeAggregatorApp:
                 for item in config["ignore_custom"]:
                     self.ignore_listbox.insert(tk.END, item)
 
-            self.output_filename.set(config.get("output_filename", "code_summary"))
+            self.output_filename.set(config.get("output_filename", "output\code_summary"))
             self.output_format.set(config.get("output_format", ".md"))
 
         except (IOError, json.JSONDecodeError) as e:
