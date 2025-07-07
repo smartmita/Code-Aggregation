@@ -17,7 +17,7 @@ from code_aggregator_gui import (
 class CodeAggregatorAPI:
     """
     代码聚合工具的API接口类
-    提供简洁的编程接口，无需GUI即可使用所有核心功能
+    提供简洁的编程接口，无需GUI即可使用所有核心功能。
     """
 
     def __init__(self):
