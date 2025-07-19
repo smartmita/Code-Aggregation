@@ -6,7 +6,7 @@ import argparse
 from typing import List, Set, Optional, Dict, Any
 
 # 导入核心函数
-from code_aggregator_gui import (
+from utils import (
     find_files,
     aggregate_code,
     get_unique_filepath,
