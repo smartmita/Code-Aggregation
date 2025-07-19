@@ -1,7 +1,4 @@
 import os
-import sys
-import json
-import threading
 import queue
 
 # --- 核心逻辑 ---
@@ -60,6 +57,7 @@ def find_files(
 
     log_queue.put(f"搜索完成。共找到 {len(found_files_list)} 个文件。")
     return found_files_list
+
 
 def generate_file_tree(root_dir: str, file_paths: list, log_queue: queue.Queue) -> str:
     """
@@ -127,6 +125,7 @@ def get_unique_filepath(
             return new_path
         counter += 1
 
+
 def aggregate_code(
     root_dir: str,
     file_paths: list,
@@ -140,7 +139,6 @@ def aggregate_code(
     """
     total_files = len(file_paths)
 
-
     # 检查并创建输出目录
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir):
@@ -149,7 +147,7 @@ def aggregate_code(
             log_queue.put(f"自动创建输出目录: {output_dir}")
         except Exception as e:
             log_queue.put(f"创建输出目录失败: {output_dir} - {e}")
-            return False # 如果创建目录失败，则退出函数
+            return False  # 如果创建目录失败，则退出函数
 
     try:
         with open(output_filename, "w", encoding="utf-8") as output_file:

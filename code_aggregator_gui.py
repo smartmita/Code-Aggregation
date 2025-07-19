@@ -11,8 +11,8 @@ from utils import (
     find_files,
     aggregate_code,
     get_unique_filepath,
-    generate_file_tree,
 )
+
 
 # --- GUI 应用 v1.5 (自动重命名) ---
 class CodeAggregatorApp:
