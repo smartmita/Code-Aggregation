@@ -1,15 +1,15 @@
-import os
-import sys
 import json
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
-import threading
+import os
 import queue
+import sys
+import threading
+import tkinter as tk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 # 导入核心函数
 from utils import (
-    find_files,
     aggregate_code,
+    find_files,
     get_unique_filepath,
 )
 
@@ -395,7 +395,7 @@ class CodeAggregatorApp:
             config_path = os.path.join(self.script_dir, self.CONFIG_FILE)
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=4)
-        except IOError as e:
+        except OSError as e:
             print(f"无法保存配置: {e}")
 
     def load_config(self):
@@ -404,7 +404,7 @@ class CodeAggregatorApp:
             self.output_dir_path.set(self.script_dir + "\\output")
             return
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 config = json.load(f)
 
             self.dir_path.set(config.get("directory", ""))
@@ -433,7 +433,7 @@ class CodeAggregatorApp:
             self.output_filename.set(config.get("output_filename", "code_summary"))
             self.output_format.set(config.get("output_format", ".md"))
 
-        except (IOError, json.JSONDecodeError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"无法加载配置: {e}")
             self.output_dir_path.set(self.script_dir + "\\output")
 

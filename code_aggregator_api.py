@@ -1,22 +1,21 @@
-import os
-import sys
-import json
-import queue
 import argparse
-from typing import List, Set, Optional, Dict, Any
+import json
+import os
+import queue
+import sys
+from typing import Any
 
 # 导入核心函数
 from utils import (
-    find_files,
     aggregate_code,
-    get_unique_filepath,
+    find_files,
     generate_file_tree,
+    get_unique_filepath,
 )
 
 
 class CodeAggregatorAPI:
-    """
-    代码聚合工具的API接口类
+    """代码聚合工具的API接口类
     提供简洁的编程接口，无需GUI即可使用所有核心功能。
     """
 
@@ -38,14 +37,13 @@ class CodeAggregatorAPI:
         self,
         directory: str,
         output_file: str = None,
-        extensions: List[str] = None,
-        ignore_items: Set[str] = None,
+        extensions: list[str] = None,
+        ignore_items: set[str] = None,
         output_format: str = ".md",
         auto_rename: bool = True,
         verbose: bool = True,
-    ) -> Optional[str]:
-        """
-        聚合指定目录中的代码文件
+    ) -> str | None:
+        """聚合指定目录中的代码文件
 
         Args:
             directory: 要扫描的根目录
@@ -132,11 +130,10 @@ class CodeAggregatorAPI:
     def generate_tree_only(
         self,
         directory: str,
-        extensions: List[str] = None,
-        ignore_items: Set[str] = None,
-    ) -> Optional[str]:
-        """
-        仅生成文件结构树，不聚合代码内容
+        extensions: list[str] = None,
+        ignore_items: set[str] = None,
+    ) -> str | None:
+        """仅生成文件结构树，不聚合代码内容
 
         Args:
             directory: 要扫描的根目录
@@ -162,9 +159,8 @@ class CodeAggregatorAPI:
         except Exception:
             return None
 
-    def save_config(self, config: Dict[str, Any], config_path: str = None) -> bool:
-        """
-        保存配置到文件
+    def save_config(self, config: dict[str, Any], config_path: str = None) -> bool:
+        """保存配置到文件
 
         Args:
             config: 配置字典
@@ -183,9 +179,8 @@ class CodeAggregatorAPI:
         except Exception:
             return False
 
-    def load_config(self, config_path: str = None) -> Optional[Dict[str, Any]]:
-        """
-        从文件加载配置
+    def load_config(self, config_path: str = None) -> dict[str, Any] | None:
+        """从文件加载配置
 
         Args:
             config_path: 配置文件路径（可选）
@@ -200,7 +195,7 @@ class CodeAggregatorAPI:
             return None
 
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return None

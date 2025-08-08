@@ -7,8 +7,7 @@ import queue
 def find_files(
     directory: str, extensions: list, ignore_items: set, log_queue: queue.Queue
 ) -> list:
-    """
-    【功能修改】查找指定目录下及其所有子目录中的所有指定后缀名的文件。
+    """【功能修改】查找指定目录下及其所有子目录中的所有指定后缀名的文件。
     忽略规则更新：
     1. 如果忽略项不含路径分隔符 (如 'venv'), 则忽略所有同名文件/文件夹。
     2. 如果忽略项包含路径分隔符 (如 'C:\\project\\data'), 则精确匹配该完整路径。
@@ -60,9 +59,7 @@ def find_files(
 
 
 def generate_file_tree(root_dir: str, file_paths: list, log_queue: queue.Queue) -> str:
-    """
-    根据文件路径列表生成文件结构树状图。
-    """
+    """根据文件路径列表生成文件结构树状图。"""
     log_queue.put("正在生成文件结构树...")
     tree = {}
     for path in file_paths:
@@ -88,7 +85,7 @@ def generate_file_tree(root_dir: str, file_paths: list, log_queue: queue.Queue) 
         lines = []
         items = sorted(node.items(), key=lambda x: x[1] is not None)
         pointers = ["├─── "] * (len(items) - 1) + ["└─── "]
-        for pointer, (name, sub_node) in zip(pointers, items):
+        for pointer, (name, sub_node) in zip(pointers, items, strict=False):
             is_dir = sub_node is not None
             icon = "📁 " if is_dir else "📄 "
             lines.append(f"{prefix}{pointer}{icon}{name}")
@@ -105,8 +102,7 @@ def generate_file_tree(root_dir: str, file_paths: list, log_queue: queue.Queue) 
 def get_unique_filepath(
     directory: str, filename: str, extension: str, log_queue: queue.Queue
 ) -> str:
-    """
-    【新增功能】检查文件路径是否存在，如果存在，则在文件名后添加 (n) 直到找到一个不重复的路径。
+    """【新增功能】检查文件路径是否存在，如果存在，则在文件名后添加 (n) 直到找到一个不重复的路径。
     同时通过 log_queue 发出提示。
     """
     base_path = os.path.join(directory, f"{filename}{extension}")
@@ -134,9 +130,7 @@ def aggregate_code(
     log_queue: queue.Queue,
     progress_queue: queue.Queue,
 ):
-    """
-    将多个代码文件的内容聚合到一个文件中，并在开头加入文件结构树。
-    """
+    """将多个代码文件的内容聚合到一个文件中，并在开头加入文件结构树。"""
     total_files = len(file_paths)
 
     # 检查并创建输出目录
@@ -174,7 +168,7 @@ def aggregate_code(
 
                 try:
                     with open(
-                        file_path, "r", encoding="utf-8", errors="ignore"
+                        file_path, encoding="utf-8", errors="ignore"
                     ) as input_file:
                         content = input_file.read()
 
@@ -195,5 +189,5 @@ def aggregate_code(
             log_queue.put(
                 f"所有代码内容已成功聚合到 '{os.path.basename(output_filename)}' 文件中。"
             )
-    except IOError as e:
+    except OSError as e:
         log_queue.put(f"错误：无法写入文件 {output_filename}。-> {e}")
