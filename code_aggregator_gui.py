@@ -4,7 +4,7 @@ import queue
 import sys
 import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk, simpledialog
 
 # 导入核心函数
 from utils import (
@@ -14,14 +14,14 @@ from utils import (
 )
 
 
-# --- GUI 应用 v1.5 (自动重命名) ---
+# --- GUI 应用 v1.1 (预设功能) ---
 class CodeAggregatorApp:
     CONFIG_FILE = "code_aggregator_config.json"
 
     def __init__(self, root):
         self.root = root
-        self.root.title("代码聚合工具 v1.5 (自动重命名)")
-        self.root.geometry("800x780")
+        self.root.title("代码聚合工具 v1.1 (预设功能)")
+        self.root.geometry("800x800")  # 增加高度以容纳新控件
         self.root.minsize(700, 650)
 
         self.script_dir = self.get_script_directory()
@@ -32,8 +32,10 @@ class CodeAggregatorApp:
         self.log_queue = queue.Queue()
         self.progress_queue = queue.Queue()
 
+        self.all_config = {}  # 新增：用于存储整个配置 JSON
         self.create_widgets(main_frame)
         self.load_config()
+        self.update_preset_combo()  # 初始加载下拉框
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.process_log_queue()
@@ -46,6 +48,19 @@ class CodeAggregatorApp:
         return application_path
 
     def create_widgets(self, parent):
+        # --- 0. 预设管理 (新增) ---
+        preset_frame = ttk.LabelFrame(parent, text="0. 配置预设", padding="10")
+        preset_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Label(preset_frame, text="选择预设:").pack(side=tk.LEFT, padx=(0, 5))
+        self.preset_var = tk.StringVar()
+        self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var, state="readonly")
+        self.preset_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.preset_combo.bind("<<ComboboxSelected>>", self.apply_preset)
+
+        ttk.Button(preset_frame, text="另存为预设", command=self.save_as_preset).pack(side=tk.LEFT, padx=2)
+        ttk.Button(preset_frame, text="删除预设", command=self.delete_preset).pack(side=tk.LEFT, padx=2)
+
         # --- 1. 目标目录选择 ---
         dir_frame = ttk.LabelFrame(
             parent, text="1. 选择要提取代码的根目录", padding="10"
@@ -373,68 +388,151 @@ class CodeAggregatorApp:
         self.root.after(2000, lambda: self.save_status_label.config(text=""))
 
     def save_config(self):
-        custom_ext_val = self.custom_extensions.get()
-        if custom_ext_val == self.placeholder_text:
-            custom_ext_val = ""
-
-        config = {
+        # 构造当前的基础配置
+        config_base = {
             "directory": self.dir_path.get(),
             "output_directory": self.output_dir_path.get(),
-            "extensions_checked": {
-                ext: var.get() for ext, var in self.ext_vars.items()
-            },
-            "extensions_custom": custom_ext_val,
-            "ignore_defaults": {
-                name: var.get() for name, var in self.ignore_vars.items()
-            },
-            "ignore_custom": list(self.ignore_listbox.get(0, tk.END)),
             "output_filename": self.output_filename.get(),
             "output_format": self.output_format.get(),
+            "last_preset": self.preset_var.get(),  # 保存最后使用的预设
         }
+
+        # 合并到 all_config
+        self.all_config.update(config_base)
+        # 确保 presets 存在
+        if "presets" not in self.all_config:
+            self.all_config["presets"] = self.get_default_presets()
+
         try:
             config_path = os.path.join(self.script_dir, self.CONFIG_FILE)
             with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=4)
+                json.dump(self.all_config, f, indent=4, ensure_ascii=False)
         except OSError as e:
             print(f"无法保存配置: {e}")
+
+    def get_default_presets(self):
+        """定义一些内置的常用预设"""
+        return {
+            "Python 项目": {
+                "extensions": [".py"],
+                "custom_ext": "",
+                "ignores": ["venv", "__pycache__", ".git", ".vscode", "dist", "build"],
+                "custom_ignores": []
+            },
+            "前端项目": {
+                "extensions": [".js", ".ts", ".vue", ".html", ".css"],
+                "custom_ext": ".json",
+                "ignores": ["node_modules", "dist", ".git", ".vscode"],
+                "custom_ignores": []
+            },
+            "C/C++ 项目": {
+                "extensions": [".c", ".h", ".cpp"],
+                "custom_ext": "",
+                "ignores": [".git", ".vscode", "build", "obj"],
+                "custom_ignores": []
+            },
+            "Java 项目": {
+                "extensions": [".java"],
+                "custom_ext": ".xml,.properties",
+                "ignores": [".git", ".idea", "target", ".gradle", "build"],
+                "custom_ignores": []
+            }
+        }
+
+    def apply_preset(self, event=None):
+        """当用户选择下拉框时，将预设值应用到界面"""
+        preset_name = self.preset_var.get()
+        presets = self.all_config.get("presets", self.get_default_presets())
+        
+        if preset_name in presets:
+            data = presets[preset_name]
+            
+            # 1. 设置后缀名
+            target_exts = data.get("extensions", [])
+            for ext, var in self.ext_vars.items():
+                var.set(ext in target_exts)
+            
+            # 2. 设置自定义后缀
+            self.custom_extensions.set(data.get("custom_ext", ""))
+            self._on_entry_focus_out(None) # 刷新 placeholder 逻辑
+            
+            # 3. 设置默认忽略项
+            target_ignores = data.get("ignores", [])
+            for name, var in self.ignore_vars.items():
+                var.set(name in target_ignores)
+                
+            # 4. 设置自定义忽略列表
+            self.ignore_listbox.delete(0, tk.END)
+            for item in data.get("custom_ignores", []):
+                self.ignore_listbox.insert(tk.END, item)
+
+    def save_as_preset(self):
+        """将当前界面的所有勾选状态保存为一个新预设"""
+        name = simpledialog.askstring("保存预设", "请输入预设名称:")
+        if not name:
+            return
+
+        current_data = {
+            "extensions": [ext for ext, var in self.ext_vars.items() if var.get()],
+            "custom_ext": self.custom_extensions.get() if self.custom_extensions.get() != self.placeholder_text else "",
+            "ignores": [name for name, var in self.ignore_vars.items() if var.get()],
+            "custom_ignores": list(self.ignore_listbox.get(0, tk.END))
+        }
+        
+        if "presets" not in self.all_config:
+            self.all_config["presets"] = self.get_default_presets()
+        
+        self.all_config["presets"][name] = current_data
+        self.update_preset_combo()
+        self.preset_var.set(name)
+        self.save_config()
+        messagebox.showinfo("成功", f"预设 '{name}' 已保存")
+
+    def delete_preset(self):
+        """删除当前选中的预设"""
+        name = self.preset_var.get()
+        if not name:
+            return
+        
+        # 不允许删除最后一个预设或需要确认
+        if messagebox.askyesno("确认", f"确定要删除预设 '{name}' 吗？"):
+            if "presets" in self.all_config and name in self.all_config["presets"]:
+                del self.all_config["presets"][name]
+                self.update_preset_combo()
+                self.preset_var.set("")
+                self.save_config()
+
+    def update_preset_combo(self):
+        """刷新下拉框列表"""
+        presets = self.all_config.get("presets", self.get_default_presets())
+        self.preset_combo["values"] = list(presets.keys())
 
     def load_config(self):
         config_path = os.path.join(self.script_dir, self.CONFIG_FILE)
         if not os.path.exists(config_path):
+            self.all_config = {"presets": self.get_default_presets()}
             self.output_dir_path.set(self.script_dir + "\\output")
             return
+
         try:
             with open(config_path, encoding="utf-8") as f:
-                config = json.load(f)
+                self.all_config = json.load(f)
 
-            self.dir_path.set(config.get("directory", ""))
-            self.output_dir_path.set(
-                config.get("output_directory", self.script_dir + "\\output")
-            )
+            # 加载基础路径设置
+            self.dir_path.set(self.all_config.get("directory", ""))
+            self.output_dir_path.set(self.all_config.get("output_directory", self.script_dir + "\\output"))
+            self.output_filename.set(self.all_config.get("output_filename", "code_summary"))
+            self.output_format.set(self.all_config.get("output_format", ".md"))
+            
+            # 尝试恢复上一次使用的预设
+            last_preset = self.all_config.get("last_preset", "")
+            if last_preset:
+                self.preset_var.set(last_preset)
+                self.apply_preset()
 
-            if "extensions_checked" in config:
-                for ext, value in config["extensions_checked"].items():
-                    if ext in self.ext_vars:
-                        self.ext_vars[ext].set(value)
-
-            self.custom_extensions.set(config.get("extensions_custom", ""))
-            self._on_entry_focus_out(None)
-
-            if "ignore_defaults" in config:
-                for name, value in config["ignore_defaults"].items():
-                    if name in self.ignore_vars:
-                        self.ignore_vars[name].set(value)
-
-            if "ignore_custom" in config:
-                self.ignore_listbox.delete(0, tk.END)
-                for item in config["ignore_custom"]:
-                    self.ignore_listbox.insert(tk.END, item)
-
-            self.output_filename.set(config.get("output_filename", "code_summary"))
-            self.output_format.set(config.get("output_format", ".md"))
-
-        except (OSError, json.JSONDecodeError) as e:
-            print(f"无法加载配置: {e}")
+        except Exception as e:
+            print(f"加载配置失败: {e}")
+            self.all_config = {"presets": self.get_default_presets()}
             self.output_dir_path.set(self.script_dir + "\\output")
 
 
