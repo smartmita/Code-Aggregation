@@ -59,7 +59,7 @@ def find_files(
 
 
 def generate_file_tree(root_dir: str, file_paths: list, log_queue: queue.Queue) -> str:
-    """根据文件路径列表生成文件结构树状图。"""
+    """根据文件路径列表生成文件结构树状图."""
     log_queue.put("正在生成文件结构树...")
     tree = {}
     for path in file_paths:
@@ -130,7 +130,7 @@ def aggregate_code(
     log_queue: queue.Queue,
     progress_queue: queue.Queue,
 ):
-    """将多个代码文件的内容聚合到一个文件中，并在开头加入文件结构树。"""
+    """将多个代码文件的内容聚合到一个文件中，并在开头加入文件结构树."""
     total_files = len(file_paths)
 
     # 检查并创建输出目录
